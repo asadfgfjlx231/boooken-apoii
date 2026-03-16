@@ -1,0 +1,23 @@
+meta {
+  name: new author
+  type: http
+  seq: 3
+}
+
+post {
+  url: http://localhost:8080/authors
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "name":"Teszt Név",
+    "bio":"Teszt adat"
+  }
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}
