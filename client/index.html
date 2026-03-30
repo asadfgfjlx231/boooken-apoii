@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Könyv REST API kliens</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Syne:wght@400;600;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/style.css">
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        :root {
+            --bg: #0d0f14;
+            --surface: #151820;
+            --surface2: #1c2030;
+            --border: #2a2f42;
+            --accent: #f0c040;
+            --accent2: #5b8fff;
+            --text: #e8eaf0;
+            --muted: #7a8099;
+            --danger: #ff5566;
+            --success: #40d080;
+        }
+
+        body {
+            font-family: 'Syne', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* ── HEADER ── */
+        .header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 1rem 2rem;
+            background: var(--surface);
+            border-bottom: 1px solid var(--border);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .header-logo {
+            font-size: 1.1rem;
+            font-weight: 800;
+            letter-spacing: 0.05em;
+            color: var(--accent);
+            text-transform: uppercase;
+        }
+
+        .header-logo span {
+            color: var(--text);
+        }
+
+        #authSection {
+            display: none;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        #userName {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.85rem;
+            color: var(--accent2);
+        }
+
+        #loginSection {
+            display: flex;
+            align-items: center;
+        }
+
+        /* ── BUTTONS ── */
+        button {
+            font-family: 'Syne', sans-serif;
+            font-weight: 600;
+            font-size: 0.85rem;
+            border: none;
+            cursor: pointer;
+            border-radius: 6px;
+            padding: 0.5rem 1.1rem;
+            transition: all 0.15s ease;
+        }
+
+        .btn-primary {
+            background: var(--accent);
+            color: #0d0f14;
+        }
+        .btn-primary:hover { background: #ffd060; transform: translateY(-1px); }
+
+        .btn-secondary {
+            background: transparent;
+            color: var(--muted);
+            border: 1px solid var(--border);
+        }
+        .btn-secondary:hover { border-color: var(--accent2); color: var(--accent2); }
+
+        .btn-danger {
+            background: transparent;
+            color: var(--danger);
+            border: 1px solid var(--danger);
+        }
+        .btn-danger:hover { background: var(--danger); color: white; }
+
+        #loginBtn    { background: var(--accent); color: #0d0f14; font-weight: 700; padding: 0.5rem 1.4rem; }
+        #loginBtn:hover { background: #ffd060; }
+        #logoutBtn   { background: transparent; color: var(--danger); border: 1px solid var(--danger); }
+        #logoutBtn:hover { background: var(--danger); color: white; }
+
+        /* ── MAIN LAYOUT ── */
+        .layout {
+            display: flex;
+            flex: 1;
+        }
+
+        /* ── SIDEBAR NAV ── */
+        #appSection {
+            display: none;
+            width: 220px;
+            min-height: calc(100vh - 57px);
+            background: var(--surface);
+            border-right: 1px solid var(--border);
+            padding: 1.5rem 1rem;
+            flex-direction: column;
+            gap: 0.4rem;
+        }
+
+        #appSection .nav-label {
+            font-size: 0.65rem;
+            font-weight: 700;
+            letter-spacing: 0.12em;
+            color: var(--muted);
+            text-transform: uppercase;
+            padding: 0.8rem 0.6rem 0.3rem;
+        }
+
+        #appSection button {
+            width: 100%;
+            text-align: left;
+            background: transparent;
+            color: var(--muted);
+            border: none;
+            padding: 0.55rem 0.8rem;
+            border-radius: 6px;
+            font-size: 0.88rem;
+            font-weight: 600;
+            transition: all 0.15s;
+        }
+
+        #appSection button:hover,
+        #appSection button.active {
+            background: var(--surface2);
+            color: var(--text);
+        }
+
+        #appSection button.active {
+            border-left: 3px solid var(--accent);
+            padding-left: calc(0.8rem - 3px);
+            color: var(--accent);
+        }
+
+        /* ── CONTENT AREA ── */
+        #content {
+            flex: 1;
+            padding: 2rem;
+            min-height: calc(100vh - 57px);
+        }
+
+        .welcome-screen {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 60vh;
+            text-align: center;
+            gap: 1rem;
+        }
+
+        .welcome-screen h2 {
+            font-size: 2rem;
+            font-weight: 800;
+            color: var(--text);
+        }
+
+        .welcome-screen p {
+            color: var(--muted);
+            font-size: 1rem;
+            max-width: 360px;
+            line-height: 1.6;
+        }
+
+        .welcome-screen .big-icon {
+            font-size: 3rem;
+            margin-bottom: 0.5rem;
+        }
+
+        /* ── MODAL ── */
+        #modal {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.7);
+            z-index: 200;
+            align-items: center;
+            justify-content: center;
+            backdrop-filter: blur(4px);
+        }
+
+        #modal:not(.hidden) {
+            display: flex;
+        }
+
+        #modal.hidden {
+            display: none;
+        }
+
+        .modal-box {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 2rem;
+            width: 100%;
+            max-width: 420px;
+            box-shadow: 0 24px 60px rgba(0,0,0,0.5);
+            animation: slideUp 0.2s ease;
+        }
+
+        @keyframes slideUp {
+            from { transform: translateY(20px); opacity: 0; }
+            to   { transform: translateY(0);    opacity: 1; }
+        }
+
+        .modal-box h2 {
+            font-size: 1.2rem;
+            font-weight: 800;
+            margin-bottom: 1.2rem;
+            color: var(--text);
+        }
+
+        /* ── FORMS ── */
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.3rem;
+            margin-bottom: 1rem;
+        }
+
+        label {
+            font-size: 0.78rem;
+            font-weight: 600;
+            color: var(--muted);
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+        }
+
+        input, select, textarea {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.9rem;
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            color: var(--text);
+            padding: 0.55rem 0.8rem;
+            width: 100%;
+            transition: border-color 0.15s;
+        }
+
+        input:focus, select:focus, textarea:focus {
+            outline: none;
+            border-color: var(--accent2);
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 0.6rem;
+            justify-content: flex-end;
+            margin-top: 1.2rem;
+        }
+
+        /* ── TABLES ── */
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.88rem;
+        }
+
+        .data-table th {
+            font-size: 0.7rem;
+            font-weight: 700;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            color: var(--muted);
+            border-bottom: 1px solid var(--border);
+            padding: 0.6rem 0.8rem;
+            text-align: left;
+        }
+
+        .data-table td {
+            padding: 0.75rem 0.8rem;
+            border-bottom: 1px solid var(--border);
+            color: var(--text);
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.82rem;
+        }
+
+        .data-table tr:hover td {
+            background: var(--surface2);
+        }
+
+        /* ── SECTION HEADER ── */
+        .section-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 1.5rem;
+        }
+
+        .section-header h2 {
+            font-size: 1.4rem;
+            font-weight: 800;
+        }
+
+        /* ── TOAST / NOTIFICATION ── */
+        #toast {
+            position: fixed;
+            bottom: 1.5rem;
+            right: 1.5rem;
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 0.8rem 1.2rem;
+            font-size: 0.88rem;
+            color: var(--text);
+            display: none;
+            z-index: 300;
+            animation: fadeIn 0.2s ease;
+            max-width: 320px;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(8px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+
+        .toast-success { border-left: 3px solid var(--success); }
+        .toast-error   { border-left: 3px solid var(--danger); }
+
+        /* ── LOADING ── */
+        .loader {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 3rem;
+            color: var(--muted);
+            font-size: 0.9rem;
+            gap: 0.6rem;
+        }
+
+        .spinner {
+            width: 18px; height: 18px;
+            border: 2px solid var(--border);
+            border-top-color: var(--accent);
+            border-radius: 50%;
+            animation: spin 0.7s linear infinite;
+        }
+
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* ── LOGIN CENTERED ── */
+        .login-center {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: calc(100vh - 57px);
+            flex: 1;
+        }
+
+        .login-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            padding: 2.5rem 2rem;
+            width: 100%;
+            max-width: 380px;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.4);
+        }
+
+        .login-card h2 {
+            font-size: 1.4rem;
+            font-weight: 800;
+            margin-bottom: 0.4rem;
+        }
+
+        .login-card p {
+            color: var(--muted);
+            font-size: 0.88rem;
+            margin-bottom: 1.6rem;
+        }
+
+        .login-card button[type="submit"],
+        .login-card #submitLoginBtn {
+            width: 100%;
+            padding: 0.7rem;
+            background: var(--accent);
+            color: #0d0f14;
+            font-size: 0.95rem;
+            font-weight: 700;
+            border-radius: 8px;
+            margin-top: 0.4rem;
+        }
+
+        .login-card button:hover {
+            background: #ffd060;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- HEADER -->
+    <div class="header">
+        <div class="header-logo">📚 Könyv<span>API</span></div>
+        <div id="authSection">
+            <span id="userName"></span>
+            <button id="logoutBtn">Kijelentkezés</button>
+        </div>
+        <div id="loginSection">
+            <button id="loginBtn">Bejelentkezés</button>
+        </div>
+    </div>
+
+    <div class="layout">
+
+        <!-- SIDEBAR (visible after login) -->
+        <div id="appSection">
+            <div class="nav-label">Kezelés</div>
+            <button id="listAuthors">👤 Szerzők</button>
+            <button id="listBooks">📖 Könyvek</button>
+            <button id="listCategories">🗂 Kategóriák</button>
+            <button id="listPublishers">🏢 Kiadók</button>
+        </div>
+
+        <!-- MAIN CONTENT -->
+        <div id="content">
+            <div class="welcome-screen">
+                <div class="big-icon">📚</div>
+                <h2>Könyv REST API</h2>
+                <p>Jelentkezz be a rendszerbe az adatok kezeléséhez.</p>
+                <button id="loginBtnCenter" class="btn-primary" style="margin-top:0.5rem; padding: 0.7rem 2rem; font-size:1rem;">Bejelentkezés</button>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- MODAL -->
+    <div id="modal" class="hidden"></div>
+
+    <!-- TOAST NOTIFICATION -->
+    <div id="toast"></div>
+
+    <script type="module" src="js/main.js"></script>
+</body>
+</html>
